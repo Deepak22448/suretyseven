@@ -31,6 +31,7 @@ docker compose up --build
 npm install                      # installs all 3 workspaces
 npm run build --workspace=shared # compiles the shared Zod-schema package
 cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env.local
 # start a local Postgres, then create the DB (see backend/.env.example)
 cd backend && npx prisma migrate dev
 npm run dev --workspace=backend  # http://localhost:4000
