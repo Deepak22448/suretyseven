@@ -1,0 +1,6 @@
+export const DOCUMENT_ERROR_CODES = {
+  MISSING_FILE: "MISSING_FILE",
+  INVALID_FILE_TYPE: "INVALID_FILE_TYPE",
+  FILE_TOO_LARGE: "FILE_TOO_LARGE",
+} as const;
+export type DocumentErrorCode = (typeof DOCUMENT_ERROR_CODES)[keyof typeof DOCUMENT_ERROR_CODES];

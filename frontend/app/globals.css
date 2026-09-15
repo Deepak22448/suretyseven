@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+/* shadcn/ui's standard token set — component source (components/ui/*)
+   references these exact names (bg-primary, text-muted-foreground, etc.),
+   so the values live here rather than in each component. */
+:root {
+  --background: #f7f8fa;
+  --foreground: #1a1d23;
+  --card: #ffffff;
+  --card-foreground: #1a1d23;
+  --popover: #ffffff;
+  --popover-foreground: #1a1d23;
+  --primary: #2f5fdd;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f1f3;
+  --secondary-foreground: #1a1d23;
+  --muted: #eef0f3;
+  --muted-foreground: #6b7280;
+  --accent: #eef0f3;
+  --accent-foreground: #1a1d23;
+  --destructive: #b3261e;
+  --destructive-foreground: #ffffff;
+  --border: #e2e5ea;
+  --input: #e2e5ea;
+  --ring: #2f5fdd;
+  --radius: 0.5rem;
+
+  /* Extends shadcn's palette with soft status colors — not part of the
+     default shadcn set, but needed for the document-status badges/alerts. */
+  --success: #16794d;
+  --success-foreground: #ffffff;
+  --success-bg: #e7f6ef;
+  --warning: #a15c00;
+  --warning-foreground: #ffffff;
+  --warning-bg: #fff2df;
+  --info: #4b5563;
+  --info-foreground: #ffffff;
+  --info-bg: #eef0f3;
+  --destructive-bg: #fce8e6;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-bg: var(--warning-bg);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-bg: var(--info-bg);
+  --color-destructive-bg: var(--destructive-bg);
+
+  /* --font-sans-inter is injected by next/font (see app/layout.tsx) on the
+     <html> element. Redirecting Tailwind's own font-sans token to it here
+     (rather than relying on cascade order) keeps the override unambiguous. */
+  --font-sans: var(--font-sans-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* @layer base sits below @layer utilities in Tailwind's cascade order, so a
+   Button's text-primary-foreground utility (via asChild -> Link) still wins
+   over this default link color — unlayered CSS would otherwise always beat
+   layered utilities regardless of specificity. */
+@layer base {
+  a {
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+}

@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Kept in sync manually with shared/src/documents/enums.ts — Prisma's DSL can't import external TS.
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  PROCESSED
+  VALIDATION_FAILED
+  FAILED
+}
+
+enum ProcessorOutcome {
+  SUCCESS
+  TIMEOUT
+  ERROR
+  INVALID_RESULT
+}
+
+model Document {
+  id              String           @id
+  filename        String
+  documentType    String
+  metadata        Json?
+  contentHash     String           @unique
+  fileSize        Int
+  storagePath     String
+  status          DocumentStatus   @default(UPLOADED)
+  attemptCount    Int              @default(0)
+  extractedResult Json?
+  failureReason   String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  history DocumentStatusHistory[]
+
+  @@index([status, createdAt])
+  @@index([documentType, createdAt])
+}
+
+model DocumentStatusHistory {
+  id                Int               @id @default(autoincrement())
+  documentId        String
+  document          Document          @relation(fields: [documentId], references: [id])
+  status            DocumentStatus
+  attemptNumber     Int?
+  outcome           ProcessorOutcome?
+  reason            String?
+  extractedSnapshot Json?
+  timestamp         DateTime          @default(now())
+
+  @@index([documentId, timestamp])
+}

@@ -1,0 +1,13 @@
+.vscode/
+.claude/
+node_modules/
+dist/
+.next/
+backend/storage/*
+!backend/storage/.gitkeep
+/storage/
+*.tsbuildinfo
+*.log
+.env
+.env.local
+.DS_Store
