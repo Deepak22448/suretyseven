@@ -1,3 +1,6 @@
+<img width="1469" height="838" alt="Screenshot 2026-09-15 at 12 17 55 PM" src="https://github.com/user-attachments/assets/4d69e0ca-1b0a-47c1-a17a-b58a611252e2" />
+
+
 # Document Processing Pipeline
 
 SDE-1 take-home for SuretySeven. A document upload/async-processing/status
