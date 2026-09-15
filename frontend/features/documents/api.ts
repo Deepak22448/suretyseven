@@ -3,6 +3,7 @@ import type {
   CommonErrorCode,
   DocumentDetail,
   DocumentErrorCode,
+  DocumentFile,
   DocumentStats,
   DocumentStatus,
   DocumentType,
@@ -56,9 +57,22 @@ export async function deleteDocument(id: string) {
   await client.delete(`/documents/${id}`);
 }
 
+export async function retryDocument(id: string) {
+  const res = await client.post<DocumentDetail>(`/documents/${id}/retry`);
+  return res.data;
+}
+
+export async function getDocumentFile(id: string) {
+  const res = await client.get<DocumentFile>(`/documents/${id}/file`);
+  return res.data;
+}
+
 export async function listDocuments(params: {
   status?: DocumentStatus;
   documentType?: DocumentType;
+  filename?: string;
+  dateFrom?: string;
+  dateTo?: string;
   page?: number;
   pageSize?: number;
   sortOrder?: SortOrder;
@@ -67,6 +81,9 @@ export async function listDocuments(params: {
     params: {
       status: params.status,
       documentType: params.documentType,
+      filename: params.filename,
+      dateFrom: params.dateFrom,
+      dateTo: params.dateTo,
       page: params.page ?? 1,
       pageSize: params.pageSize ?? 20,
       sortOrder: params.sortOrder ?? "desc",

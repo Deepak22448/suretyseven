@@ -102,8 +102,3 @@ export function startPoller() {
   intervalHandle = setInterval(runOnce, POLL_INTERVAL_MS);
   logger.info({ intervalMs: POLL_INTERVAL_MS }, "poller started");
 }
-
-export function stopPoller() {
-  if (intervalHandle) clearInterval(intervalHandle);
-  intervalHandle = null;
-}

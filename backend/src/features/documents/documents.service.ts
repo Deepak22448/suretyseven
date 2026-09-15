@@ -1,11 +1,18 @@
 import path from "node:path";
-import { mkdir, writeFile, unlink } from "node:fs/promises";
-import { DocumentStatusSchema, DocumentTypeSchema, SortOrderSchema, COMMON_ERROR_CODES } from "@suretyseven/shared";
+import { mkdir, writeFile, unlink, readFile } from "node:fs/promises";
+import {
+  DocumentStatusSchema,
+  DocumentTypeSchema,
+  SortOrderSchema,
+  COMMON_ERROR_CODES,
+  DOCUMENT_ERROR_CODES,
+  type DocumentStatus,
+} from "@suretyseven/shared";
 import { AppError } from "../../lib/errors";
 import { logger } from "../../lib/logger";
 import { sha256 } from "../../lib/hash";
 import { UploadFieldsSchema, validateUploadedFile } from "./validation/upload.validation";
-import { STORAGE_DIR } from "./documents.constants";
+import { STORAGE_DIR, ALLOWED_MIME_TYPES } from "./documents.constants";
 import {
   newDocumentId,
   findByContentHash,
@@ -15,7 +22,10 @@ import {
   listDocuments,
   countsByStatus,
   deleteDocument,
+  retryDocument,
 } from "./documents.repo";
+
+const RETRYABLE_STATUSES = new Set<DocumentStatus>(["FAILED", "VALIDATION_FAILED"]);
 
 export async function uploadDocument(file: Express.Multer.File | undefined, rawFields: unknown) {
   const fileError = validateUploadedFile(file);
@@ -100,11 +110,32 @@ export async function getDocumentHistoryList(id: string) {
   }));
 }
 
+export async function getDocumentFileData(id: string) {
+  const doc = await findDocumentOrThrow(id);
+  const bytes = await readFile(doc.storagePath);
+  return { filename: doc.filename, mimeType: ALLOWED_MIME_TYPES[0], data: bytes.toString("base64") };
+}
+
+export async function retryDocumentById(id: string) {
+  const doc = await findDocumentOrThrow(id);
+  if (!RETRYABLE_STATUSES.has(doc.status)) {
+    throw new AppError(
+      DOCUMENT_ERROR_CODES.NOT_RETRYABLE,
+      `Document ${id} is not in a retryable state (status: ${doc.status})`,
+      400,
+    );
+  }
+  await retryDocument(id);
+  logger.info({ documentId: id }, "document manually retried");
+  return getDocumentDetail(id);
+}
+
 export async function deleteDocumentById(id: string) {
   const doc = await findDocumentOrThrow(id);
   await deleteDocument(id);
-  // Best-effort — an already-missing file shouldn't block the delete the user asked for.
-  await unlink(doc.storagePath).catch(() => {});
+  await unlink(doc.storagePath).catch((err) => {
+    logger.warn({ documentId: id, err }, "failed to delete document file from disk");
+  });
   logger.info({ documentId: id }, "document deleted");
 }
 
@@ -120,9 +151,22 @@ export async function getDocumentStats() {
   };
 }
 
+// Bare dates (no "T") are treated as whole-day boundaries: dateTo="2026-09-14" should include that entire day.
+function parseDateFilter(value: unknown, label: string, endOfDay = false): Date | undefined {
+  if (value === undefined || value === "") return undefined;
+  if (typeof value !== "string") throw new AppError(COMMON_ERROR_CODES.INVALID_QUERY, `Invalid ${label}`, 400);
+  const iso = endOfDay && !value.includes("T") ? `${value}T23:59:59.999Z` : value;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) throw new AppError(COMMON_ERROR_CODES.INVALID_QUERY, `Invalid ${label}`, 400);
+  return date;
+}
+
 export async function listDocumentsPaged(query: {
   status?: unknown;
   documentType?: unknown;
+  filename?: unknown;
+  dateFrom?: unknown;
+  dateTo?: unknown;
   page?: unknown;
   pageSize?: unknown;
   sortOrder?: unknown;
@@ -137,6 +181,10 @@ export async function listDocumentsPaged(query: {
     throw new AppError(COMMON_ERROR_CODES.INVALID_QUERY, "Invalid documentType filter", 400);
   }
 
+  const filename = typeof query.filename === "string" && query.filename.trim() ? query.filename.trim() : undefined;
+  const dateFrom = parseDateFilter(query.dateFrom, "dateFrom");
+  const dateTo = parseDateFilter(query.dateTo, "dateTo", true);
+
   const sortOrder = SortOrderSchema.safeParse(query.sortOrder).data ?? "desc";
 
   const page = Math.max(1, Number(query.page) || 1);
@@ -145,6 +193,9 @@ export async function listDocumentsPaged(query: {
   const { items, total } = await listDocuments({
     status: statusParse?.data,
     documentType: typeParse?.data,
+    filename,
+    dateFrom,
+    dateTo,
     page,
     pageSize,
     sortOrder,

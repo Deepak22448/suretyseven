@@ -9,6 +9,10 @@ export function useDocumentsList() {
   const [stats, setStats] = useState<DocumentStats | null>(null);
   const [status, setStatus] = useState<DocumentStatus | "">("");
   const [documentType, setDocumentType] = useState<DocumentType | "">("");
+  const [filenameInput, setFilenameInput] = useState("");
+  const [filename, setFilename] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
   const [totalPages, setTotalPages] = useState(1);
@@ -16,12 +20,29 @@ export function useDocumentsList() {
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // Debounced so typing a filename doesn't fire a request per keystroke.
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setFilename(filenameInput.trim());
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [filenameInput]);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
     Promise.all([
-      listDocuments({ status: status || undefined, documentType: documentType || undefined, page, sortOrder }),
+      listDocuments({
+        status: status || undefined,
+        documentType: documentType || undefined,
+        filename: filename || undefined,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+        page,
+        sortOrder,
+      }),
       getDocumentStats(),
     ])
       .then(([res, statsRes]) => {
@@ -38,7 +59,7 @@ export function useDocumentsList() {
     return () => {
       cancelled = true;
     };
-  }, [status, documentType, page, sortOrder, refreshKey]);
+  }, [status, documentType, filename, dateFrom, dateTo, page, sortOrder, refreshKey]);
 
   function onStatusChange(value: DocumentStatus | "") {
     setStatus(value);
@@ -47,6 +68,16 @@ export function useDocumentsList() {
 
   function onDocumentTypeChange(value: DocumentType | "") {
     setDocumentType(value);
+    setPage(1);
+  }
+
+  function onDateFromChange(value: string) {
+    setDateFrom(value);
+    setPage(1);
+  }
+
+  function onDateToChange(value: string) {
+    setDateTo(value);
     setPage(1);
   }
 
@@ -69,6 +100,9 @@ export function useDocumentsList() {
     stats,
     status,
     documentType,
+    filenameInput,
+    dateFrom,
+    dateTo,
     page,
     sortOrder,
     totalPages,
@@ -76,6 +110,9 @@ export function useDocumentsList() {
     error,
     onStatusChange,
     onDocumentTypeChange,
+    onFilenameInputChange: setFilenameInput,
+    onDateFromChange,
+    onDateToChange,
     onSortChange,
     onPageChange: setPage,
     onDelete,

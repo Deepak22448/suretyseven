@@ -11,3 +11,4 @@ export * from "./history-entry.schema";
 export * from "./upload-response.schema";
 export * from "./paginated-documents.schema";
 export * from "./document-stats.schema";
+export * from "./document-file.schema";

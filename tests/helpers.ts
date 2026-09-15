@@ -27,9 +27,9 @@ export async function runUntilStatus(documentId: string, statuses: string[], max
   throw new Error(`Document ${documentId} did not reach [${statuses.join(", ")}] within ${maxTicks} ticks`);
 }
 
-export function uploadPdf(documentType = "FINANCIAL_STATEMENT", suffix = "") {
+export function uploadPdf(documentType = "FINANCIAL_STATEMENT", suffix = "", filename = "test.pdf") {
   return request(app).post("/documents").field("documentType", documentType).attach("file", samplePdf(suffix), {
-    filename: "test.pdf",
+    filename,
     contentType: "application/pdf",
   });
 }

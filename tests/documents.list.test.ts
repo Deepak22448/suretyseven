@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import request from "supertest";
 import { app, resetDb, uploadPdf, runUntilStatus } from "./helpers";
+import { prisma } from "../backend/src/db/client";
 import { queueMockResults, clearMockResults } from "../backend/src/features/documents/worker/processor";
 
 describe("GET /documents — pagination and sorting", () => {
@@ -33,6 +34,46 @@ describe("GET /documents — pagination and sorting", () => {
 
     const asc = await request(app).get("/documents?sortOrder=asc");
     expect(asc.body.items[0].documentId).toBe(first.body.documentId);
+  });
+
+  it("filters by filename, case-insensitively and by substring", async () => {
+    await uploadPdf("FINANCIAL_STATEMENT", "invoice-march", "invoice-march.pdf");
+    await uploadPdf("FINANCIAL_STATEMENT", "receipt-april", "receipt-april.pdf");
+
+    const res = await request(app).get("/documents?filename=INVOICE");
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0].filename).toBe("invoice-march.pdf");
+  });
+
+  it("filters by upload date range", async () => {
+    await uploadPdf("FINANCIAL_STATEMENT", "in-range");
+
+    const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+    const inRange = await request(app).get(`/documents?dateTo=${tomorrow}`);
+    expect(inRange.body.total).toBe(1);
+
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    const outOfRange = await request(app).get(`/documents?dateTo=${yesterday}`);
+    expect(outOfRange.body.total).toBe(0);
+  });
+
+  it("treats a bare dateTo as end-of-day in UTC, not server-local time", async () => {
+    const upload = await uploadPdf("FINANCIAL_STATEMENT", "utc-boundary");
+    // 23:00 UTC is already the next calendar day under the test's IST (UTC+5:30) clock — a bug that
+    // computed end-of-day in local time instead of UTC would wrongly exclude this from dateTo=2026-01-01.
+    await prisma.document.update({
+      where: { id: upload.body.documentId },
+      data: { createdAt: new Date("2026-01-01T23:00:00.000Z") },
+    });
+
+    const res = await request(app).get("/documents?dateTo=2026-01-01");
+    expect(res.body.total).toBe(1);
+  });
+
+  it("rejects an invalid date filter", async () => {
+    const res = await request(app).get("/documents?dateFrom=not-a-date");
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("INVALID_QUERY");
   });
 });
 

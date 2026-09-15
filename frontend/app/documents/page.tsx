@@ -17,8 +17,14 @@ export default function DocumentsListPage() {
       <FilterBar
         status={list.status}
         documentType={list.documentType}
+        filenameInput={list.filenameInput}
+        dateFrom={list.dateFrom}
+        dateTo={list.dateTo}
         onStatusChange={list.onStatusChange}
         onDocumentTypeChange={list.onDocumentTypeChange}
+        onFilenameInputChange={list.onFilenameInputChange}
+        onDateFromChange={list.onDateFromChange}
+        onDateToChange={list.onDateToChange}
       />
 
       {list.error && (
@@ -30,7 +36,7 @@ export default function DocumentsListPage() {
       <DocumentsListContent
         loading={list.loading}
         items={list.items}
-        hasActiveFilters={Boolean(list.status || list.documentType)}
+        hasActiveFilters={Boolean(list.status || list.documentType || list.filenameInput || list.dateFrom || list.dateTo)}
         sortOrder={list.sortOrder}
         onSortChange={list.onSortChange}
         onDelete={list.onDelete}

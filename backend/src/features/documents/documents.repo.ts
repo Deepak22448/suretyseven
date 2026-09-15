@@ -34,13 +34,24 @@ export function findById(id: string) {
   return prisma.document.findUnique({ where: { id } });
 }
 
-// History rows reference the document via a non-cascading FK — delete them first or the
-// document delete fails the constraint.
 export function deleteDocument(id: string) {
   return prisma.$transaction([
     prisma.documentStatusHistory.deleteMany({ where: { documentId: id } }),
     prisma.document.delete({ where: { id } }),
   ]);
+}
+
+// attemptCount is left as-is — a manual retry continues the same attempt chain, it doesn't reset the budget.
+export function retryDocument(id: string) {
+  return prisma.$transaction(async (tx) => {
+    await tx.documentStatusHistory.create({
+      data: { documentId: id, status: "UPLOADED", reason: "Manual retry" },
+    });
+    await tx.document.update({
+      where: { id },
+      data: { status: "UPLOADED", failureReason: null, extractedResult: Prisma.JsonNull },
+    });
+  });
 }
 
 export function getHistory(documentId: string) {
@@ -53,6 +64,9 @@ export function getHistory(documentId: string) {
 export async function listDocuments(params: {
   status?: DocumentStatus;
   documentType?: string;
+  filename?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
   page: number;
   pageSize: number;
   sortOrder: SortOrder;
@@ -60,6 +74,15 @@ export async function listDocuments(params: {
   const where = {
     ...(params.status ? { status: params.status } : {}),
     ...(params.documentType ? { documentType: params.documentType } : {}),
+    ...(params.filename ? { filename: { contains: params.filename, mode: "insensitive" as const } } : {}),
+    ...(params.dateFrom || params.dateTo
+      ? {
+          createdAt: {
+            ...(params.dateFrom ? { gte: params.dateFrom } : {}),
+            ...(params.dateTo ? { lte: params.dateTo } : {}),
+          },
+        }
+      : {}),
   };
   const [items, total] = await Promise.all([
     prisma.document.findMany({
@@ -86,7 +109,6 @@ export async function countsByStatus(): Promise<Record<DocumentStatus, number>> 
   return counts;
 }
 
-// Single transaction — history and aggregate status must never drift apart.
 export function recordEvent(params: {
   documentId: string;
   eventStatus: DocumentStatus;

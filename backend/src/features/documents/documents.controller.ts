@@ -11,6 +11,11 @@ export async function getStats(_req: Request, res: Response) {
   return res.json(stats);
 }
 
+export async function retryDocument(req: Request, res: Response) {
+  const doc = await documentsService.retryDocumentById(req.params.id);
+  return res.json(doc);
+}
+
 export async function deleteDocument(req: Request, res: Response) {
   await documentsService.deleteDocumentById(req.params.id);
   return res.status(204).send();
@@ -19,6 +24,11 @@ export async function deleteDocument(req: Request, res: Response) {
 export async function getDocument(req: Request, res: Response) {
   const doc = await documentsService.getDocumentDetail(req.params.id);
   return res.json(doc);
+}
+
+export async function getDocumentFile(req: Request, res: Response) {
+  const file = await documentsService.getDocumentFileData(req.params.id);
+  return res.json(file);
 }
 
 export async function getDocumentHistory(req: Request, res: Response) {

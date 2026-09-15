@@ -15,8 +15,12 @@ export function HistoryTimeline({ history }: { history: HistoryEntry[] }) {
   return (
     <ul className="m-0 list-none p-0">
       {history.map((entry, i) => {
-        const dot = DOT[entry.status] ?? DOT.UPLOADED;
         const isLast = i === history.length - 1;
+        // A manual retry reuses the UPLOADED status (that's what puts it back in the poller's
+        // queue) but reads confusingly as a second "upload" in the timeline — show its own label/icon instead.
+        const isManualRetry = entry.status === "UPLOADED" && entry.reason === "Manual retry";
+        const dot = isManualRetry ? { bg: "bg-info", icon: "↻" } : (DOT[entry.status] ?? DOT.UPLOADED);
+        const title = isManualRetry ? entry.reason : entry.status;
         return (
           <li key={i} className="relative flex gap-3 pb-[18px]">
             {!isLast && (
@@ -29,13 +33,15 @@ export function HistoryTimeline({ history }: { history: HistoryEntry[] }) {
             </span>
             <div>
               <div className="text-sm font-semibold">
-                {entry.status}
+                {title}
                 {entry.attemptNumber ? ` · attempt ${entry.attemptNumber}` : ""}
               </div>
               <div className="text-[13px] text-muted-foreground">
                 {new Date(entry.timestamp).toLocaleString()}
               </div>
-              {entry.reason && <div className="mt-0.5 text-[13px] text-foreground">{entry.reason}</div>}
+              {entry.reason && !isManualRetry && (
+                <div className="mt-0.5 text-[13px] text-foreground">{entry.reason}</div>
+              )}
             </div>
           </li>
         );

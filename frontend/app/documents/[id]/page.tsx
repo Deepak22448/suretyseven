@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, RotateCw } from "lucide-react";
 import { useDocumentDetail } from "@/features/documents/hooks/useDocumentDetail";
 import { DeleteDocumentButton } from "@/features/documents/components/DeleteDocumentButton";
+import { DocumentFilePreview } from "@/features/documents/components/DocumentFilePreview";
 import { DocumentInfoCard } from "@/features/documents/components/DocumentInfoCard";
 import { ExtractedInfoCard } from "@/features/documents/components/ExtractedInfoCard";
 import { ProcessingHistoryCard } from "@/features/documents/components/ProcessingHistoryCard";
@@ -17,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DocumentDetailPage() {
   const params = useParams<{ id: string }>();
-  const { doc, history, loading, error, onDelete } = useDocumentDetail(params.id);
+  const { doc, history, loading, error, onDelete, onRetry } = useDocumentDetail(params.id);
 
   if (loading) {
     return (
@@ -54,6 +55,12 @@ export default function DocumentDetailPage() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold">{doc.filename}</h1>
         <div className="flex items-center gap-2">
+          {(doc.status === "FAILED" || doc.status === "VALIDATION_FAILED") && (
+            <Button variant="secondary" onClick={onRetry}>
+              <RotateCw className="h-4 w-4" />
+              Retry
+            </Button>
+          )}
           <DeleteDocumentButton documentId={doc.documentId} filename={doc.filename} onConfirm={onDelete} />
           <Button variant="secondary" asChild>
             <Link href="/documents">
@@ -65,6 +72,8 @@ export default function DocumentDetailPage() {
       </div>
 
       <DocumentInfoCard doc={doc} />
+
+      <DocumentFilePreview documentId={doc.documentId} filename={doc.filename} />
 
       {doc.status === "VALIDATION_FAILED" && doc.failureReason && (
         <ValidationErrors reason={doc.failureReason} />

@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { DocumentDetail, HistoryEntry } from "../types";
-import { getDocument, getDocumentHistory, deleteDocument, ApiError } from "../api";
+import { getDocument, getDocumentHistory, deleteDocument, retryDocument, ApiError } from "../api";
 
 const ACTIVE_STATUSES = new Set(["UPLOADED", "PROCESSING"]);
 
@@ -50,5 +50,14 @@ export function useDocumentDetail(documentId: string) {
     }
   }
 
-  return { doc, history, loading, error, onDelete };
+  async function onRetry() {
+    try {
+      await retryDocument(documentId);
+      await refreshDocument();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not retry document.");
+    }
+  }
+
+  return { doc, history, loading, error, onDelete, onRetry };
 }
